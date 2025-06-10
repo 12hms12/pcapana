@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pcapanalyzer"
+version = "0.1.0"
+authors = [{ name = "Harsh M Shah" }]
+description = "Analyze PCAP files for protocol stats, bandwidth, and domains."
+dependencies = ["pyshark"]
+readme = "README.md"
+requires-python = ">=3.7"
+
+[project.scripts]
+pcapana = "pcapanalyzer.cli:main"
