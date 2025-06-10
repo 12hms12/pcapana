@@ -16,7 +16,7 @@ setup(
     description="Analyze PCAP files for protocol stats, bandwidth usage, and visited domains.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/12hms12/pcapanalyzer", 
+    url="https://github.com/12hms12/pcapana", 
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
