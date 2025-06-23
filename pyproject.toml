@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pcapanalyzer"
+name = "pcapana"
 version = "0.1.0"
 authors = [{ name = "Harsh M Shah" }]
 description = "Analyze PCAP files for protocol stats, bandwidth, and domains."

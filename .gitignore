@@ -9,12 +9,14 @@ __pycache__/
 *.pyd
 *.so
 
+
 # Distribution / packaging
 .Python
 build/
 dist/
 *.egg-info/
 *.egg
+*.egg-info
 
 .vscode/        
 
@@ -23,3 +25,4 @@ dist/
 .coverage
 htmlcov/
 .nox/
+.pypirc
