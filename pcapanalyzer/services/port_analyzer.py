@@ -112,9 +112,11 @@ if __name__ == "__main__":
                         key=lambda x: (x[0], x[1], x[2])
                     )
                     
-                    remote_conn_strings = [
-                        f"{ip}:{port} ({protocol})" for ip, port, protocol in remote_connections
-                    ]
+                    remote_conn_strings = []
+                    for ip, port, protocol in remote_connections:
+                        # Check if the remote port is well-known and add the service name
+                        remote_service = WELL_KNOWN_PORTS.get(int(port), protocol)
+                        remote_conn_strings.append(f"{ip}:{port} ({remote_service})")
                     
                     print(f"  -> {service_name} (Port {local_port})")
                     print(f"     Communicated with: {', '.join(remote_conn_strings)}")
