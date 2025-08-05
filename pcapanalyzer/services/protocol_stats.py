@@ -2,7 +2,7 @@ import pyshark
 from collections import Counter
 
 def analyze_proto_stats(capture):
-    print("Analyzing all protocol usage...")
+    print("Analyzing all protocol usage...\n")
 
     protocol_counts = Counter()
 
@@ -38,10 +38,10 @@ if __name__ == "__main__":
             stats['QUIC (UDP)'] = quic_count
 
         total_packets = sum(stats.values())
+        print("="*50)
         print(f"Total Packets: {total_packets}")
-
-        print("\nProtocol Usage:")
-        # Sort by the count (the value of the item), in descending order
+        print("="*50)
+        print("Protocol Usage:")
         for proto, count in sorted(stats.items(), key=lambda item: item[1], reverse=True):
             percentage = (count * 100) / total_packets if total_packets > 0 else 0
             print(f"{proto:<15}: {count:<10} ({percentage:.2f}%)")
