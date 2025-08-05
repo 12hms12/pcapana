@@ -2,32 +2,17 @@ import pyshark
 from collections import Counter
 
 def analyze_proto_stats(capture):
-    print("Analyzing protocol usage...")
+    print("Analyzing all protocol usage...")
 
     protocol_counts = Counter()
 
     for pkt in capture:
         try:
-            if 'TCP' in pkt:
-                if 'HTTP' in pkt:
-                    protocol_counts['HTTP'] += 1
-                elif 'HTTPS' in pkt:
-                    protocol_counts['HTTPS'] += 1
-                else:
-                    protocol_counts['TCP'] += 1
-            elif 'UDP' in pkt:
-                if 'DNS' in pkt:
-                    protocol_counts['DNS'] += 1
-                else:
-                    protocol_counts['UDP'] += 1
-            elif 'ICMP' in pkt:
-                protocol_counts['ICMP'] += 1
-            elif 'ARP' in pkt:
-                protocol_counts['ARP'] += 1
-            else:
-                high_layer = pkt.highest_layer
-                if high_layer not in ['TCP', 'UDP', 'ICMP', 'DNS', 'HTTP', 'HTTPS', 'ARP']:
-                    protocol_counts['OTHER'] += 1
+            # Use the highest_layer attribute to get the most specific protocol name
+            protocol_name = pkt.highest_layer
+            protocol_counts[protocol_name] += 1
+        except AttributeError:
+            protocol_counts['UNKNOWN'] += 1
         except Exception:
             protocol_counts['ERROR'] += 1
 
@@ -39,8 +24,26 @@ if __name__ == "__main__":
         print("Usage: python protocol_stats.py <pcap_file>")
         sys.exit(1)
 
-    cap = pyshark.FileCapture(sys.argv[1])
-    stats = analyze_proto_stats(cap)
-    for proto, count in stats.items():
-        print(f"{proto}: {count}")
-    cap.close()
+    pcap_path = sys.argv[1]
+    print(f"[*] Loading PCAP file: {pcap_path}")
+    cap = pyshark.FileCapture(pcap_path) 
+    
+    try:
+        stats = analyze_proto_stats(cap)
+        
+        # Rename QUIC for better context
+        if 'QUIC' in stats:
+            quic_count = stats['QUIC']
+            del stats['QUIC']
+            stats['QUIC (UDP)'] = quic_count
+
+        total_packets = sum(stats.values())
+        print(f"Total Packets: {total_packets}")
+
+        print("\nProtocol Usage:")
+        # Sort by the count (the value of the item), in descending order
+        for proto, count in sorted(stats.items(), key=lambda item: item[1], reverse=True):
+            percentage = (count * 100) / total_packets if total_packets > 0 else 0
+            print(f"{proto:<15}: {count:<10} ({percentage:.2f}%)")
+    finally:
+        cap.close()
