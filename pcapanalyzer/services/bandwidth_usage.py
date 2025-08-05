@@ -51,6 +51,6 @@ if __name__ == "__main__":
         for ip, stats in sorted_stats:
             total = stats['sent'] + stats['received']
             # Use f-string formatting to align the output nicely
-            print(f"  {ip:<15}: Sent={stats['sent']:<8} bytes | Received={stats['received']:<8} bytes | Total={total:<10} bytes")
+            print(f"  {ip:<15}: Sent={stats['sent']:<10} bytes | Received={stats['received']:<10} bytes | Total={total:<10} bytes")
     finally:
         cap.close()
