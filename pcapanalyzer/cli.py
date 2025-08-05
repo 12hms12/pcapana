@@ -72,15 +72,12 @@ def run_port_analysis(cap):
     if not connections:
         print("No IP connections found.")
     else:
-        # Sort local IPs for consistent output
         for local_ip in sorted(connections.keys()):
             print(f"Local IP: {local_ip}")
             
-            # Sort ports for consistent output
             for local_port in sorted(connections[local_ip].keys(), key=int):
                 service_name = WELL_KNOWN_PORTS.get(int(local_port), "Dynamic Port")
                 
-                # Format remote connections to include IP, Port, and Protocol
                 remote_connections = sorted(
                     list(connections[local_ip][local_port]), 
                     key=lambda x: (x[0], x[1], x[2])
@@ -88,7 +85,6 @@ def run_port_analysis(cap):
                 
                 remote_conn_strings = []
                 for ip, port, protocol in remote_connections:
-                    # Check if the remote port is well-known and add the service name
                     remote_service = WELL_KNOWN_PORTS.get(int(port), protocol)
                     remote_conn_strings.append(f"{ip}:{port} ({remote_service})")
                 
@@ -116,38 +112,50 @@ def run_bandwidth_usage(cap):
     bandwidth_stats = analyze_bw(cap)
 
     print("Bandwidth Usage Per IP:")
-    # Sort the output by total bandwidth (sent + received) for better visibility
     sorted_stats = sorted(bandwidth_stats.items(), key=lambda item: item[1]['sent'] + item[1]['received'], reverse=True)
     
     for ip, stats in sorted_stats:
         total = stats['sent'] + stats['received']
-        # Use f-string formatting to align the output nicely
         print(f"  {ip:<15}: Sent={stats['sent']:<10} bytes | Received={stats['received']:<10} bytes | Total={total:<10} bytes")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze a PCAP file for protocol stats, bandwidth, and visited domains.")
+    parser = argparse.ArgumentParser(
+        description="Analyze a PCAP file for various network statistics. If no flags are provided, all analyses will be run.",
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("pcap_path", help="Path to the PCAP file")
+    
+    parser.add_argument("-b", "--bandwidth", action="store_true", help="Run bandwidth analysis.")
+    parser.add_argument("-d", "--domains", action="store_true", help="Run visited domains analysis.")
+    parser.add_argument("-p", "--protocol", action="store_true", help="Run protocol statistics.")
+    parser.add_argument("-o", "--osi", action="store_true", help="Run OSI layer analysis.")
+    parser.add_argument("-po", "--ports", action="store_true", help="Run port analysis.")
+    
     args = parser.parse_args()
 
     print(f"[*] Loading PCAP file: {args.pcap_path}")
     cap = pyshark.FileCapture(args.pcap_path, only_summaries=False)
+    
+    analyses_to_run = []
+    
+    if args.bandwidth:
+        analyses_to_run.append(run_bandwidth_usage)
+    if args.domains:
+        analyses_to_run.append(run_visited_domains)
+    if args.protocol:
+        analyses_to_run.append(run_protocol_stats)
+    if args.osi:
+        analyses_to_run.append(run_osi_analysis)
+    if args.ports:
+        analyses_to_run.append(run_port_analysis)
+        
+    if not analyses_to_run:
+        analyses_to_run = [run_protocol_stats, run_osi_analysis, run_port_analysis, run_visited_domains, run_bandwidth_usage]
 
     try:
-        # New order of execution
-        run_protocol_stats(cap)
-        cap.reset()
-
-        run_osi_analysis(cap)
-        cap.reset()
-
-        run_port_analysis(cap)
-        cap.reset()
-
-        run_visited_domains(cap)
-        cap.reset()
-
-        run_bandwidth_usage(cap)
+        for analysis_func in analyses_to_run:
+            analysis_func(cap)
+            cap.reset()
         
     finally:
         cap.close()
