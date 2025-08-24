@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pcapana"
-version = "0.1.1"
+version = "0.1.2"
 authors = [{ name = "Harsh M Shah" }]
-description = "A  command-line tool for comprehensive network analysis from PCAP files. It provides detailed statistics on protocol usage, OSI layer distribution, open port communications, bandwidth consumption, and visited domains for network troubleshooting and security insights."
+description = "A  command-line tool to analyze PCAP file for Protocol Statistics, Visited Domains, OSI Layer Analysis, Bandwidth Analysis & Port Analysis with the option to export it as a HTML report "
 dependencies = ["pyshark"]
 readme = "README.md"
 requires-python = ">=3.7"

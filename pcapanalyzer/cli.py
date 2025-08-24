@@ -1,16 +1,18 @@
 import argparse
 import pyshark
+import sys
+import os
 from collections import Counter, defaultdict
+from io import StringIO
 from pcapanalyzer.services.protocol_stats import analyze_proto_stats
 from pcapanalyzer.services.bandwidth_usage import analyze_bw
 from pcapanalyzer.services.visited_domains import analyze_domains, extract_top_level_domain
 from pcapanalyzer.services.osi_analyzer import analyze_osi_layers
 from pcapanalyzer.services.port_analyzer import analyze_ports, WELL_KNOWN_PORTS
+from pcapanalyzer.services.report_generator import generate_html_report
 
 
 def run_protocol_stats(cap):
-    print("\n[*] Running Protocol Statistics...")
-    
     stats = analyze_proto_stats(cap)
     
     if 'QUIC' in stats:
@@ -19,62 +21,59 @@ def run_protocol_stats(cap):
         stats['QUIC (UDP)'] = quic_count
 
     total_packets = sum(stats.values())
-    print(f"Total Packets: {total_packets}")
-
-    print("\nProtocol Counts (Sorted by Usage):")
+    
+    headers = ["Protocol", "Count", "Percentage (%)"]
+    data_rows = []
+    
     for proto, count in sorted(stats.items(), key=lambda item: item[1], reverse=True):
         percentage = (count * 100) / total_packets if total_packets > 0 else 0
-        print(f"{proto:<15}: {count:<10} ({percentage:.2f}%)")
+        data_rows.append({
+            "Protocol": proto,
+            "Count": count,
+            "Percentage (%)": f"{percentage:.2f}%"
+        })
+    
+    return {"headers": headers, "data": data_rows}
 
 
 def run_osi_analysis(cap):
-    print("\n[*] Running OSI Layer Analysis...")
     osi_stats, total_packets = analyze_osi_layers(cap)
     
-    print("\n" + "="*50)
-    print("OSI Layer Statistics")
-    print("="*50)
+    headers = ["Layer", "Name", "Count", "Percentage (%)", "Protocols"]
+    data_rows = []
     
-    if total_packets == 0:
-        print("No packets found in the capture file.")
-    else:
-        layer_order = ['Layer 7 (Application)', 'Layer 6 (Presentation)', 'Layer 5 (Session)', 
-                       'Layer 4 (Transport)', 'Layer 3 (Network)', 'Layer 2 (Data Link)']
-        for layer in layer_order:
-            if layer in osi_stats:
-                stats = osi_stats[layer]
-                count = stats['count']
-                percentage = (count * 100) / total_packets
-                protocol_list = ", ".join(sorted(list(stats['protocols'])))
-                
-                layer_num_str = layer.split(' ')[1].replace('(', '')
-                layer_name_only = layer.split('(')[-1].replace(')','')
-                print(f"Layer {layer_num_str:<2} | {layer_name_only:<20} | {count:<8} ({percentage:.2f}%) | Protocols: {protocol_list}")
+    layer_order = ['Layer 7 (Application)', 'Layer 6 (Presentation)', 'Layer 5 (Session)', 
+                   'Layer 4 (Transport)', 'Layer 3 (Network)', 'Layer 2 (Data Link)']
+
+    for layer in layer_order:
+        if layer in osi_stats:
+            stats = osi_stats[layer]
+            count = stats['count']
+            percentage = (count * 100) / total_packets
+            protocol_list = ", ".join(sorted(list(stats['protocols'])))
+            
+            layer_num_str = layer.split(' ')[1].replace('(', '')
+            layer_name_only = layer.split('(')[-1].replace(')','')
+            
+            data_rows.append({
+                "Layer": layer_num_str,
+                "Name": layer_name_only,
+                "Count": count,
+                "Percentage (%)": f"{percentage:.2f}%",
+                "Protocols": protocol_list
+            })
     
-    print("\n" + "="*50)
-    print("Protocols that are counted in multiple layers:")
-    print("="*50)
-    print("- QUIC: Appears in Layer 7 and Layer 4")
-    print("- TLS/SSL: Appears in Layer 6 and is a foundation for many Layer 7 protocols")
-    print("- IP/IPv6: Found in Layer 3, acts as a foundation for all higher-level protocols")
-    print("- TCP/UDP: Found in Layer 4, acts as a foundation for many Layer 7 protocols")
-    print("="*50 + "\n")
+    return {"headers": headers, "data": data_rows}
 
 
 def run_port_analysis(cap):
-    print("\n[*] Running Port Analysis...")
     connections = analyze_ports(cap)
 
-    print("\n==============================================")
-    print("Port Analysis by IP Address")
-    print("==============================================")
+    headers = ["Local IP", "Local Port (Service)", "Remote Connections"]
+    data_rows = []
     
-    if not connections:
-        print("No IP connections found.")
-    else:
+    if connections:
         for local_ip in sorted(connections.keys()):
-            print(f"Local IP: {local_ip}")
-            
             for local_port in sorted(connections[local_ip].keys(), key=int):
                 service_name = WELL_KNOWN_PORTS.get(int(local_port), "Dynamic Port")
                 
@@ -88,35 +87,50 @@ def run_port_analysis(cap):
                     remote_service = WELL_KNOWN_PORTS.get(int(port), protocol)
                     remote_conn_strings.append(f"{ip}:{port} ({remote_service})")
                 
-                print(f"  -> {service_name} (Port {local_port})")
-                print(f"     Communicated with: {', '.join(remote_conn_strings)}")
-            print()
+                data_rows.append({
+                    "Local IP": local_ip,
+                    "Local Port (Service)": f"{service_name} ({local_port})",
+                    "Remote Connections": ", ".join(remote_conn_strings)
+                })
+
+    return {"headers": headers, "data": data_rows}
 
 
 def run_visited_domains(cap):
-    print("\n[*] Running Visited Domains Analysis...")
     domains = analyze_domains(cap)
 
-    print("\nMost Visited Domains (by frequency + traffic):")
-    print("--------------------------------------------------")
-    
-    if not domains:
-        print("No domains found in the capture file.")
-    else:
+    headers = ["Domain", "Count", "Size (bytes)"]
+    data_rows = []
+
+    if domains:
         for domain, count, size in domains[:50]:
-            print(f"  {domain:<30}: {count:<5} times, {size:<10} bytes")
+            data_rows.append({
+                "Domain": domain,
+                "Count": count,
+                "Size (bytes)": size
+            })
+    
+    return {"headers": headers, "data": data_rows}
 
 
 def run_bandwidth_usage(cap):
-    print("\n[*] Running Bandwidth Analysis...")
     bandwidth_stats = analyze_bw(cap)
 
-    print("Bandwidth Usage Per IP:")
+    headers = ["IP Address", "Sent (bytes)", "Received (bytes)", "Total (bytes)"]
+    data_rows = []
+
     sorted_stats = sorted(bandwidth_stats.items(), key=lambda item: item[1]['sent'] + item[1]['received'], reverse=True)
     
     for ip, stats in sorted_stats:
         total = stats['sent'] + stats['received']
-        print(f"  {ip:<15}: Sent={stats['sent']:<10} bytes | Received={stats['received']:<10} bytes | Total={total:<10} bytes")
+        data_rows.append({
+            "IP Address": ip,
+            "Sent (bytes)": stats['sent'],
+            "Received (bytes)": stats['received'],
+            "Total (bytes)": total
+        })
+
+    return {"headers": headers, "data": data_rows}
 
 
 def main():
@@ -130,6 +144,7 @@ def main():
     parser.add_argument("-p", "--protocol", action="store_true", help="Run protocol statistics.")
     parser.add_argument("-o", "--osi", action="store_true", help="Run OSI layer analysis.")
     parser.add_argument("-po", "--ports", action="store_true", help="Run port analysis.")
+    parser.add_argument("-r", "--report", action="store_true", help="Generate an HTML report instead of printing to the terminal.")
     
     args = parser.parse_args()
 
@@ -138,24 +153,46 @@ def main():
     
     analyses_to_run = []
     
-    if args.bandwidth:
-        analyses_to_run.append(run_bandwidth_usage)
-    if args.domains:
-        analyses_to_run.append(run_visited_domains)
     if args.protocol:
-        analyses_to_run.append(run_protocol_stats)
+        analyses_to_run.append(("Protocol Statistics", run_protocol_stats))
+    if args.domains:
+        analyses_to_run.append(("Visited Domains", run_visited_domains))
     if args.osi:
-        analyses_to_run.append(run_osi_analysis)
+        analyses_to_run.append(("OSI Layer Analysis", run_osi_analysis))
+    if args.bandwidth:
+        analyses_to_run.append(("Bandwidth Analysis", run_bandwidth_usage))
     if args.ports:
-        analyses_to_run.append(run_port_analysis)
+        analyses_to_run.append(("Port Analysis", run_port_analysis))
         
     if not analyses_to_run:
-        analyses_to_run = [run_protocol_stats, run_osi_analysis, run_port_analysis, run_visited_domains, run_bandwidth_usage]
+        analyses_to_run = [
+            ("Protocol Statistics", run_protocol_stats),
+            ("Visited Domains", run_visited_domains),
+            ("OSI Layer Analysis", run_osi_analysis),
+            ("Bandwidth Analysis", run_bandwidth_usage),
+            ("Port Analysis", run_port_analysis)
+        ]
 
     try:
-        for analysis_func in analyses_to_run:
-            analysis_func(cap)
-            cap.reset()
+        if args.report:
+            report_data = {}
+            for title, analysis_func in analyses_to_run:
+                report_data[title] = analysis_func(cap)
+                cap.reset()
+            
+            generate_html_report(args.pcap_path, report_data)
+        else:
+            for title, analysis_func in analyses_to_run:
+                print(f"\n[*] {title}...")
+                data = analysis_func(cap)
+                # Print as a simple ASCII table for terminal output
+                headers = data['headers']
+                print(" | ".join([f"{h:<{20}}" for h in headers]))
+                print("-" * (len(" | ".join([f"{h:<{20}}" for h in headers]))))
+                for row in data['data']:
+                    print(" | ".join([f"{str(row[h]):<{20}}" for h in headers]))
+                print("\n")
+                cap.reset()
         
     finally:
         cap.close()

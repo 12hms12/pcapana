@@ -1,6 +1,6 @@
 # pcapana
 
-A powerful command-line tool for comprehensive network analysis from PCAP files. It provides detailed statistics on protocol usage, OSI layer distribution, open port communications, bandwidth consumption, and visited domains for network troubleshooting and security insights.
+A command-line tool for comprehensive network analysis from PCAP files. It provides detailed statistics on protocol usage, OSI layer distribution, open port communications, bandwidth consumption, and visited domains for network troubleshooting and security insights.
 
 ---
 
@@ -45,8 +45,9 @@ You can use optional flags to run only the analyses you need.
 | `-po`, `--ports` | Runs port communication analysis |
 | `-d`, `--domains` | Runs visited domains analysis |
 | `-b`, `--bandwidth` | Runs bandwidth analysis |
+|  `-r`,`--report` | Generates Detailed HTML Report of Analysis |
 
-**Example:** To run only the port and protocol analysis
+**Example:** To run only the port and protocol analysis and save it as a HTML report
 ```bash
-pcapana -po -p path/to/your/file.pcap
+pcapana -po -p -r path/to/your/file.pcap
 ```
