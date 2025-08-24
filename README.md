@@ -13,6 +13,7 @@ A command-line tool for comprehensive network analysis from PCAP files. It provi
 * **🌐 Visited Domains:** Identify the top visited domains from DNS, HTTP, and TLS traffic, ranked by frequency and traffic volume.
 * **💻 Port Analysis:** Discover which local ports are communicating with which remote ports and services (e.g., HTTPS, SSH).
 * **📈 Bandwidth Usage:** Analyze bandwidth consumption per IP address, showing sent, received, and total bytes.
+* **📄 HTML Report** Generate HTML report instead of just printing to terminal
 
 ---
 
