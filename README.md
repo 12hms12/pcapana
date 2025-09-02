@@ -4,6 +4,8 @@ A command-line tool for comprehensive network analysis from PCAP files. It provi
 
 ---
 
+### Note: You must have wireshark/tshark installed for this to work on your machine
+
 ## 🚀 Features
 
 `pcapana` dissects network traffic from a `.pcap` file and presents the data in a human-readable format. Its key features include:
