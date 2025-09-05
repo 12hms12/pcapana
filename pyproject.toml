@@ -4,12 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pcapana"
-version = "0.1.2"
+version = "0.1.4"
 authors = [{ name = "Harsh M Shah" }]
-description = "A  command-line tool to analyze PCAP file for Protocol Statistics, Visited Domains, OSI Layer Analysis, Bandwidth Analysis & Port Analysis with the option to export it as a HTML report "
-dependencies = ["pyshark"]
-readme = "README.md"
+description = "A command-line tool to analyze PCAP files for Protocol Statistics, Visited Domains, OSI Layer Analysis, Bandwidth Analysis & Port Analysis with the option to export it as a HTML report"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.7"
+dependencies = ["pyshark"]
+license = { text = "MIT" }
+
+[project.urls]
+Homepage = "https://github.com/12hms12/pcapana"
+Repository = "https://github.com/12hms12/pcapana"
+Issues = "https://github.com/12hms12/pcapana/issues"
+PyPI = "https://pypi.org/project/pcapana/"
 
 [project.scripts]
 pcapana = "pcapanalyzer.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pcapanalyzer*"]
